@@ -8,8 +8,8 @@ Original file is located at
 """
 
 # Initialize API keys
-openai.api_key = os.getenv("OPENAI_API_KEY")
-pinecone_api_key = os.getenv("PINECONE_API_KEY")
+openai.api_key = OPENAI_API_KEY
+pinecone_api_key = PINECONE_API_KEY
 
 # Pinecone setup
 pc = Pinecone(api_key=pinecone_api_key)
