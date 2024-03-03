@@ -7,6 +7,8 @@ Original file is located at
     https://colab.research.google.com/drive/1bSlZMbG0yAgu3nJATf9GNoQWu9t8xhD4
 """
 
+import openai
+
 # Initialize API keys
 openai.api_key = "OPENAI_API_KEY"
 pinecone_api_key = "PINECONE_API_KEY"
