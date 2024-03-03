@@ -53,9 +53,11 @@ def process_user_query(user_query):
     embedding_response = openai.Embedding.create(model="text-embedding-ada-002", input=user_query)
     embedding_vector = embedding_response['data'][0]['embedding']
 
-    # Query the Pinecone index
-    query_results = index.query(vector=embedding_vector, top_k=5, include_metadata=True)
-    responses = [match['metadata']['text_chunk'] for match in query_results['matches'] if 'metadata' in match and 'text_chunk' in match['metadata']]
+    try:
+        query_results = index.query(vector=embedding_vector, top_k=5, include_metadata=True)
+    except Exception as e:
+        st.error(f"Query failed: {e}")
+        return None
 
     # Generate a response using GPT-3 with the retrieved texts
     return generate_response_with_gpt3(responses)
