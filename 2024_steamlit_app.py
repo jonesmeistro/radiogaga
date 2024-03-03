@@ -10,6 +10,7 @@ Original file is located at
 import openai
 import os 
 from pinecone import Pinecone, ServerlessSpec
+import streamlit as st
 
 # Initialize API keys
 openai.api_key = os.getenv("OPENAI_API_KEY")
