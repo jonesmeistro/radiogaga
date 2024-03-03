@@ -7,18 +7,14 @@ Original file is located at
     https://colab.research.google.com/drive/1bSlZMbG0yAgu3nJATf9GNoQWu9t8xhD4
 """
 
-!pip install openai==0.28
-
-!pip install pinecone-client
-
 import streamlit as st
 import openai
 import os
 from pinecone import Pinecone, ServerlessSpec
 
 # Initialize API keys
-openai.api_key = os.getenv('OPENAI_API_KEY', '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')
-pinecone_api_key = os.getenv("PINECONE_API_KEY", "2af4a324-c766-4bd9-a523-b5457187fcc1")
+openai.api_key = os.getenv("OPENAI_API_KEY")
+pinecone_api_key = os.getenv("PINECONE_API_KEY")
 
 # Pinecone setup
 pc = Pinecone(api_key=pinecone_api_key)
