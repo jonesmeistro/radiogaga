@@ -49,20 +49,23 @@ def generate_response_with_gpt3(responses):
     else:
         return "Response format unknown: {}".format(response)
 
-# Function to process user query
 def process_user_query(user_query):
     # Generate an embedding for the query
     embedding_response = openai.Embedding.create(model="text-embedding-ada-002", input=user_query)
     embedding_vector = embedding_response['data'][0]['embedding']
 
+    responses = [] # Define responses here to ensure it's accessible later
+
     try:
         query_results = index.query(vector=embedding_vector, top_k=5, include_metadata=True)
+        responses = [match['metadata']['text_chunk'] for match in query_results['matches'] if 'metadata' in match and 'text_chunk' in match['metadata']]
     except Exception as e:
         st.error(f"Query failed: {e}")
         return None
 
     # Generate a response using GPT-3 with the retrieved texts
     return generate_response_with_gpt3(responses)
+
 
 # Streamlit app layout
 st.title('Chat Model App')
