@@ -7,8 +7,6 @@ Original file is located at
     https://colab.research.google.com/drive/1bSlZMbG0yAgu3nJATf9GNoQWu9t8xhD4
 """
 
-!pip install streamlit
-
 !pip install openai==0.28
 
 !pip install pinecone-client
