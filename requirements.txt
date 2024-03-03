@@ -1,0 +1,6 @@
+flask==1.1.2
+requests==2.24.0
+streamlit
+openai==0.28
+pinecone-client
+requests
