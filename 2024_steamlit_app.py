@@ -7,11 +7,6 @@ Original file is located at
     https://colab.research.google.com/drive/1bSlZMbG0yAgu3nJATf9GNoQWu9t8xhD4
 """
 
-import streamlit as st
-import openai
-import os
-from pinecone import Pinecone, ServerlessSpec
-
 # Initialize API keys
 openai.api_key = os.getenv("OPENAI_API_KEY")
 pinecone_api_key = os.getenv("PINECONE_API_KEY")
