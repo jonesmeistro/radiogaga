@@ -9,7 +9,7 @@ Original file is located at
 
 import openai
 import os 
-import pinecone
+from pinecone import Pinecone
 
 # Initialize API keys
 openai.api_key = os.getenv("OPENAI_API_KEY")
