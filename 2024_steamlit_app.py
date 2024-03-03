@@ -16,9 +16,16 @@ import streamlit as st
 openai.api_key = os.getenv("OPENAI_API_KEY")
 pinecone_api_key = os.getenv("PINECONE_API_KEY")
 
-# Pinecone setup
-pc = Pinecone(api_key=pinecone_api_key)
-index_name = "index-llm-yt"
+try:
+    pc = Pinecone(api_key=pinecone_api_key)
+    index_name = "index-llm-yt"
+    if index_name not in pc.list_indexes().names():
+        st.error(f"Index {index_name} does not exist.")
+    else:
+        index = pc.Index(name=index_name)
+except Exception as e:
+    st.error(f"Failed to initialize Pinecone index: {e}")
+
 
 # Function to generate response with GPT-3
 def generate_response_with_gpt3(responses):
