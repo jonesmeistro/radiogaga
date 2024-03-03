@@ -7,10 +7,12 @@ Original file is located at
     https://colab.research.google.com/drive/1bSlZMbG0yAgu3nJATf9GNoQWu9t8xhD4
 """
 
-import openai
 import os 
-from pinecone import Pinecone, ServerlessSpec
+import requests
+import openai
 import streamlit as st
+from pinecone import Pinecone, ServerlessSpec
+
 
 # Initialize API keys
 openai.api_key = os.getenv("OPENAI_API_KEY")
