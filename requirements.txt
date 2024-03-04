@@ -2,5 +2,6 @@ requests
 streamlit
 pinecone-client==3.1.0
 openai==0.28
+google-api-python-client
 
 
