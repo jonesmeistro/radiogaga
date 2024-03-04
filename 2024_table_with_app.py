@@ -72,6 +72,15 @@ st.title('Wlecome to the Eavesdropper')
 
 user_input = st.text_input("What would you like to know?", "")
 
+csv_url = 'https://raw.githubusercontent.com/yourusername/yourrepo/main/two_ngram_analysis.csv'
+
+# Load data directly from the GitHub URL
+df = pd.read_csv(csv_url)
+
+# Display the DataFrame as a table in the Streamlit app
+# Use the height parameter to control the size of the display window, enabling scroll
+st.dataframe(df.head(10), height=300)  # Adjust the height as needed
+
 if st.button('Ask'):
     if user_input:
         response_text = process_user_query(user_input)
