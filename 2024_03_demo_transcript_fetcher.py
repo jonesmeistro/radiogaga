@@ -87,7 +87,6 @@ def save_transcripts_to_csv(selected_videos):
 st.title("YouTube Video Transcript Fetcher")
 
 query = st.text_input("What YouTube Videos are you interested in?")
-query = st.text_input("What YouTube Videos are you interested in?")
 if query:
     searched_videos = search_youtube_videos(query)
     if searched_videos:
