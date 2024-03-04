@@ -12,6 +12,8 @@ import requests
 import openai
 import streamlit as st
 from pinecone import Pinecone, ServerlessSpec
+import pandas as pd
+
 
 
 # Initialize API keys
