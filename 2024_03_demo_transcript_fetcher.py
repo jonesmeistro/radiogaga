@@ -31,13 +31,16 @@ def search_youtube_videos(query, max_results=20, region_code='GB'):
         video_id = item['id']['videoId']
         title = item['snippet']['title']
         published_at = item['snippet']['publishedAt']
+        views = get_video_views(video_id)  # Fetch views here
         videos.append({
             'video_id': video_id,
             'title': title,
-            'published_at': published_at
+            'published_at': published_at,
+            'views': views  # Include views in the video information
         })
 
     return videos
+
 
 def get_video_views(video_id):
     video_response = youtube.videos().list(
@@ -84,11 +87,14 @@ def save_transcripts_to_csv(selected_videos):
 st.title("YouTube Video Transcript Fetcher")
 
 query = st.text_input("What YouTube Videos are you interested in?")
+query = st.text_input("What YouTube Videos are you interested in?")
 if query:
     searched_videos = search_youtube_videos(query)
     if searched_videos:
-        options = [f"{video['title']} (Published at: {video['published_at']})" for video in searched_videos]
+        # Ensure views are included in the video dictionaries
+        options = [f"Views: {video['views']} Date: {video['published_at']} Title: {video['title']}" for video in searched_videos]
         selections = st.multiselect("Select videos to fetch transcripts for:", options)
         if st.button("Fetch Transcripts"):
-            selected_videos = [searched_videos[options.index(selection)] for selection in selections]
+            selected_indices = [options.index(selection) for selection in selections]
+            selected_videos = [searched_videos[index] for index in selected_indices]
             save_transcripts_to_csv(selected_videos)
