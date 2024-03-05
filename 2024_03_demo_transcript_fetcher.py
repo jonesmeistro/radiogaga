@@ -13,7 +13,8 @@ from youtube_transcript_api import YouTubeTranscriptApi
 import csv
 
 # Set your YouTube API key
-YOUTUBE_API_KEY = "YOUTUBE_API_KEY"
+YOUTUBE_API_KEY = st.secrets["YOUTUBE_API_KEY"]
+
 youtube = build('youtube', 'v3', developerKey=YOUTUBE_API_KEY)
 
 
