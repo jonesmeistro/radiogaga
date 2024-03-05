@@ -67,7 +67,7 @@ def process_user_query(user_query):
 
 
 # Streamlit app layout
-st.title('Wlecome to the Eavesdropper')
+st.title('Welcome to the Eavesdropper')
 
 user_input = st.text_input("What would you like to know?", "")
 
