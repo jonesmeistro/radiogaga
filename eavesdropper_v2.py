@@ -87,68 +87,34 @@ def generate_response_with_gpt3(responses):
         st.error(f"Failed to generate response with GPT-4: {e}")
         return None
 
-def process_user_query(user_query, top_k, start_date, end_date, comments_only):
-    # Code to use the custom API for embeddings
-    url = "https://ai-api-dev.dentsu.com/openai/deployments/TextEmbeddingAda2/embeddings?api-version=2024-02-15-preview"
-    headers = {
-        'x-service-line': 'creative',
-        'x-brand': 'carat',
-        'x-project': 'CraigJonesProject',
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache',
-        'api-version': 'v7',
-        'Ocp-Apim-Subscription-Key': embed_api_key,
-    }
-    data = {
-        "input": user_query,
-        "user": "streamlit_user",
-        "input_type": "query"
-    }
-    data = json.dumps(data).encode("utf-8")
-    req = urllib.request.Request(url, data=data, headers=headers, method='POST')
+def process_user_query(user_query, top_k, comments_only):
+    # Setup for the custom API for embeddings remains unchanged...
 
     try:
         response = urllib.request.urlopen(req)
         response_body = response.read().decode('utf-8')
         json_response = json.loads(response_body)
         
-        # Adjusting to correctly extract the embedding vector based on the provided response format
         if 'data' in json_response and len(json_response['data']) > 0 and 'embedding' in json_response['data'][0]:
             embedding_vector = json_response['data'][0]['embedding']
         else:
             st.error("Failed to retrieve embedding vector from response.")
             return None
 
+        # Constructing filter based on user inputs
         filter_conditions = []
         if comments_only:
             filter_conditions.append({"comments_tag": {"$eq": True}})
         filter_query = {"$and": filter_conditions} if filter_conditions else {}
         
-        # Query Pinecone without applying date filter
+        # Query Pinecone with the filter
         query_results = index.query(vector=embedding_vector, top_k=top_k, filter=filter_query, include_metadata=True)
+        responses = [match['metadata']['text_chunk'] for match in query_results['matches'] if 'metadata' in match and 'text_chunk' in match['metadata']]
         
-        # Convert the start_date and end_date to datetime objects for comparison
-        # Assuming start_date and end_date are already datetime.date objects
-        start_datetime = datetime.combine(start_date, datetime.min.time())
-        end_datetime = datetime.combine(end_date, datetime.max.time())
-
-        # Filter the results based on date, assuming date is stored in a 'date' metadata field as a string
-        responses = [
-            match['metadata']['text_chunk'] for match in query_results['matches']
-            if 'metadata' in match and 'text_chunk' in match['metadata'] and 'date' in match['metadata']
-            # Convert the date string to a datetime object for comparison
-            and start_datetime <= datetime.strptime(match['metadata']['date'], "%Y-%m-%d") <= end_datetime
-        ]
-        
-        # Generate response with GPT-3
-
+        return generate_response_with_gpt3(responses)
     except Exception as e:
         st.error(f"An error occurred: {e}")
         return None
-
-        
-    return generate_response_with_gpt3(responses)
-
 
 # Streamlit app layout
 st.title('Welcome to the Eavesdropper')
@@ -156,13 +122,6 @@ st.title('Welcome to the Eavesdropper')
 # 1. Select top_k value
 top_k = st.slider("Select the number of top responses you want:", min_value=1, max_value=100, value=5)
 
-# 2. Select date range (if using a slider)
-date_options = pd.date_range(start="2021-01-01", end="2024-04-08", freq='D')
-start_date, end_date = st.select_slider(
-    "Select a date range:",
-    options=date_options,
-    value=(date_options[0], date_options[-1])
-)
 
 # 3. Checkbox for comments only
 comments_only = st.checkbox("Filter for comments only")
