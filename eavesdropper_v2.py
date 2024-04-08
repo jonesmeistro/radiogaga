@@ -140,7 +140,7 @@ st.title('Welcome to the Eavesdropper')
 top_k = st.slider("Select the number of top responses you want:", min_value=1, max_value=100, value=5)
 
 # 2. Select date range (if using a slider)
-date_options = pd.date_range(start="2021-01-01", end="2023-12-31", freq='D')
+date_options = pd.date_range(start="2021-01-01", end="2024-04-08", freq='D')
 start_date, end_date = st.select_slider(
     "Select a date range:",
     options=date_options,
