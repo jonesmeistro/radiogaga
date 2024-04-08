@@ -132,7 +132,7 @@ user_input = st.text_input("What would you like to know?", "")
 if st.button('Ask'):
     if user_input:
         # Pass additional parameters to the function
-        response_text = process_user_query(user_input, top_k, start_date, end_date, comments_only)
+        response_text = process_user_query(user_input, top_k, comments_only)
         st.write(response_text)
     else:
         st.write("Please enter a question.")
