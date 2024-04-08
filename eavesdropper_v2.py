@@ -11,10 +11,14 @@ import requests
 import openai
 import streamlit as st
 from pinecone import Pinecone, ServerlessSpec
+import datetime
+import pandas as pd
+
+embed_api_key = os.getenv("EMBED_API_KEY")
+generate_response_api_key = os.getenv("GENERATE_RESPONSE_API_KEY")
 
 
 # Initialize API keys
-openai.api_key = os.getenv("OPENAI_API_KEY")
 pinecone_api_key = os.getenv("PINECONE_API_KEY")
 
 try:
@@ -29,51 +33,131 @@ except Exception as e:
 
 
 # Function to generate response with GPT-3
+import urllib.request
+import json
+import streamlit as st
+
+# Your existing code remains unchanged up to this function
+
 def generate_response_with_gpt3(responses):
+    # Set up the new API endpoint and headers
+    url = "https://ai-api-dev.dentsu.com/openai/deployments/GPT4-8K/chat/completions?api-version=2023-05-15"
+    headers = {
+        'x-service-line': 'Creative',
+        'x-brand': 'carat',
+        'x-project': 'data-journalist-radio',
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache',
+        'api-version': 'v2',
+        'Ocp-Apim-Subscription-Key': generate_response_api_key,  # Replace with your actual subscription key
+    }
+    
+    # Prepare the messages for the data payload
     messages = [
         {"role": "system", "content": "I am feeding you context from YouTube videos and Comments.  This data is helping you to give me the best possible answer, I am interested in obtaining new and deep insights from this data"},
         {"role": "user", "content": "Based on the following information, provide a summary:"}
-    ]
-
-    for text in responses:
-        messages.append({"role": "user", "content": text})
-
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=messages,
-    )
-
-    if isinstance(response, openai.openai_object.OpenAIObject):
-        return response.get("choices")[0].get("message").get("content")
-    else:
-        return "Response format unknown: {}".format(response)
-
-def process_user_query(user_query):
-    # Generate an embedding for the query
-    embedding_response = openai.Embedding.create(model="text-embedding-ada-002", input=user_query)
-    embedding_vector = embedding_response['data'][0]['embedding']
-
-    responses = [] # Define responses here to ensure it's accessible later
-
+    ] + [{"role": "user", "content": text} for text in responses]
+    
+    # The data payload
+    data = {
+        "model": "gpt4-8K",  # Specify the model you want to use
+        "messages": messages
+    }
+    
+    # Convert the data dictionary to JSON and encode it to bytes
+    data_bytes = json.dumps(data).encode('utf-8')
+    
+    # Create a request object with the URL, headers, and data
+    request = urllib.request.Request(url, data=data_bytes, headers=headers, method='POST')
+    
     try:
-        query_results = index.query(vector=embedding_vector, top_k=5, include_metadata=True)
-        responses = [match['metadata']['text_chunk'] for match in query_results['matches'] if 'metadata' in match and 'text_chunk' in match['metadata']]
+        # Perform the request and capture the response
+        response = urllib.request.urlopen(request)
+        response_body = response.read()
+        
+        # Decode and process the response
+        json_response = json.loads(response_body.decode('utf-8'))
+        
+        # Assuming the response format includes a list of messages, extract the last one as the response
+        if 'messages' in json_response:
+            return json_response['messages'][-1]['content']
+        else:
+            return "Response format unknown: {}".format(json_response)
     except Exception as e:
-        st.error(f"Query failed: {e}")
+        st.error(f"Failed to generate response with GPT-4: {e}")
         return None
 
-    # Generate a response using GPT-3 with the retrieved texts
-    return generate_response_with_gpt3(responses)
+# The rest of your Streamlit app code remains unchanged
+def process_user_query(user_query, top_k, start_date, end_date, comments_only):
+    # Code to use the custom API for embeddings
+    url = "https://ai-api-dev.dentsu.com/openai/deployments/TextEmbeddingAda2/embeddings?api-version=2024-02-15-preview"
+    headers = {
+        'x-service-line': 'creative',
+        'x-brand': 'carat',
+        'x-project': 'CraigJonesProject',
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache',
+        'api-version': 'v7',
+        'Ocp-Apim-Subscription-Key': embed_api_key,
+    }
+    data = {
+        "input": user_query,
+        "user": "streamlit_user",
+        "input_type": "query"
+    }
+    data = json.dumps(data).encode("utf-8")
+    req = urllib.request.Request(url, data=data, headers=headers, method='POST')
+
+    try:
+        response = urllib.request.urlopen(req)
+        response_body = response.read().decode('utf-8')
+        json_response = json.loads(response_body)
+        embedding_vector = json_response['embedding']
+        
+        # Constructing filter based on user inputs
+        filter_conditions = []
+        if comments_only:
+            filter_conditions.append({"comments_tag": {"$eq": True}})
+        if start_date and end_date:
+            filter_conditions.append({"date": {"$gte": start_date.strftime("%Y-%m-%d"), "$lte": end_date.strftime("%Y-%m-%d")}})
+        filter_query = {"$and": filter_conditions} if filter_conditions else {}
+        
+        # Query Pinecone
+        query_results = index.query(vector=embedding_vector, top_k=top_k, filter=filter_query, include_metadata=True)
+        responses = [match['metadata']['text_chunk'] for match in query_results['matches'] if 'metadata' in match and 'text_chunk' in match['metadata']]
+        
+        return generate_response_with_gpt3(responses)
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
+        return None
+
 
 
 # Streamlit app layout
 st.title('Welcome to the Eavesdropper')
 
+# 1. Select top_k value
+top_k = st.slider("Select the number of top responses you want:", min_value=1, max_value=100, value=5)
+
+# 2. Select date range (if using a slider)
+date_options = pd.date_range(start="2021-01-01", end="2023-12-31", freq='D')
+start_date, end_date = st.select_slider(
+    "Select a date range:",
+    options=date_options,
+    value=(date_options[0], date_options[-1])
+)
+
+# 3. Checkbox for comments only
+comments_only = st.checkbox("Filter for comments only")
+
+
 user_input = st.text_input("What would you like to know?", "")
 
 if st.button('Ask'):
     if user_input:
-        response_text = process_user_query(user_input)
+        # Pass additional parameters to the function
+        response_text = process_user_query(user_input, top_k, start_date, end_date, comments_only)
         st.write(response_text)
     else:
         st.write("Please enter a question.")
+
