@@ -141,22 +141,14 @@ def process_user_query(user_query, top_k, start_date, end_date, comments_only):
         ]
         
         # Generate response with GPT-3
-        return generate_response_with_gpt3(responses)
+
     except Exception as e:
         st.error(f"An error occurred: {e}")
         return None
-        if start_date and end_date:
-            filter_conditions.append({"date": {"$gte": start_date.strftime("%Y-%m-%d"), "$lte": end_date.strftime("%Y-%m-%d")}})
-        filter_query = {"$and": filter_conditions} if filter_conditions else {}
+
         
-        # Query Pinecone
-        query_results = index.query(vector=embedding_vector, top_k=top_k, filter=filter_query, include_metadata=True)
-        responses = [match['metadata']['text_chunk'] for match in query_results['matches'] if 'metadata' in match and 'text_chunk' in match['metadata']]
-        
-        return generate_response_with_gpt3(responses)
-    except Exception as e:
-        st.error(f"An error occurred: {e}")
-        return None
+    return generate_response_with_gpt3(responses)
+
 
 # Streamlit app layout
 st.title('Welcome to the Eavesdropper')
