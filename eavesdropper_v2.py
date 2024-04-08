@@ -119,10 +119,32 @@ def process_user_query(user_query, top_k, start_date, end_date, comments_only):
             st.error("Failed to retrieve embedding vector from response.")
             return None
 
-        # Constructing filter based on user inputs
         filter_conditions = []
         if comments_only:
             filter_conditions.append({"comments_tag": {"$eq": True}})
+        filter_query = {"$and": filter_conditions} if filter_conditions else {}
+        
+        # Query Pinecone without applying date filter
+        query_results = index.query(vector=embedding_vector, top_k=top_k, filter=filter_query, include_metadata=True)
+        
+        # Convert the start_date and end_date to datetime objects for comparison
+        # Assuming start_date and end_date are already datetime.date objects
+        start_datetime = datetime.combine(start_date, datetime.min.time())
+        end_datetime = datetime.combine(end_date, datetime.max.time())
+
+        # Filter the results based on date, assuming date is stored in a 'date' metadata field as a string
+        responses = [
+            match['metadata']['text_chunk'] for match in query_results['matches']
+            if 'metadata' in match and 'text_chunk' in match['metadata'] and 'date' in match['metadata']
+            # Convert the date string to a datetime object for comparison
+            and start_datetime <= datetime.strptime(match['metadata']['date'], "%Y-%m-%d") <= end_datetime
+        ]
+        
+        # Generate response with GPT-3
+        return generate_response_with_gpt3(responses)
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
+        return None
         if start_date and end_date:
             filter_conditions.append({"date": {"$gte": start_date.strftime("%Y-%m-%d"), "$lte": end_date.strftime("%Y-%m-%d")}})
         filter_query = {"$and": filter_conditions} if filter_conditions else {}
