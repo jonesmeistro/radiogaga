@@ -88,7 +88,26 @@ def generate_response_with_gpt3(responses):
         return None
 
 def process_user_query(user_query, top_k, comments_only):
-    # Setup for the custom API for embeddings remains unchanged...
+    # Code to use the custom API for embeddings
+    url = "https://ai-api-dev.dentsu.com/openai/deployments/TextEmbeddingAda2/embeddings?api-version=2024-02-15-preview"
+    headers = {
+        'x-service-line': 'creative',
+        'x-brand': 'carat',
+        'x-project': 'CraigJonesProject',
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache',
+        'api-version': 'v7',
+        'Ocp-Apim-Subscription-Key': embed_api_key,
+    }
+    data = {
+        "input": user_query,
+        "user": "streamlit_user",
+        "input_type": "query"
+    }
+    data = json.dumps(data).encode("utf-8")
+
+    # Define 'req' here before using it
+    req = urllib.request.Request(url, data=data, headers=headers, method='POST')
 
     try:
         response = urllib.request.urlopen(req)
@@ -100,6 +119,7 @@ def process_user_query(user_query, top_k, comments_only):
         else:
             st.error("Failed to retrieve embedding vector from response.")
             return None
+
 
         # Constructing filter based on user inputs
         filter_conditions = []
