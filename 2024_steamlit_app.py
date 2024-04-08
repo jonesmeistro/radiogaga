@@ -31,7 +31,7 @@ except Exception as e:
 # Function to generate response with GPT-3
 def generate_response_with_gpt3(responses):
     messages = [
-        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "system", "content": "I am feeding you context from YouTube videos and Comments.  This data is helping you to give me the best possible answer, I am interested in obtaining new and deep insights from this data"},
         {"role": "user", "content": "Based on the following information, provide a summary:"}
     ]
 
