@@ -87,7 +87,6 @@ def generate_response_with_gpt3(responses):
         st.error(f"Failed to generate response with GPT-4: {e}")
         return None
 
-# The rest of your Streamlit app code remains unchanged
 def process_user_query(user_query, top_k, start_date, end_date, comments_only):
     # Code to use the custom API for embeddings
     url = "https://ai-api-dev.dentsu.com/openai/deployments/TextEmbeddingAda2/embeddings?api-version=2024-02-15-preview"
@@ -112,8 +111,14 @@ def process_user_query(user_query, top_k, start_date, end_date, comments_only):
         response = urllib.request.urlopen(req)
         response_body = response.read().decode('utf-8')
         json_response = json.loads(response_body)
-        embedding_vector = json_response['embedding']
         
+        # Adjusting to correctly extract the embedding vector based on the provided response format
+        if 'data' in json_response and len(json_response['data']) > 0 and 'embedding' in json_response['data'][0]:
+            embedding_vector = json_response['data'][0]['embedding']
+        else:
+            st.error("Failed to retrieve embedding vector from response.")
+            return None
+
         # Constructing filter based on user inputs
         filter_conditions = []
         if comments_only:
@@ -130,8 +135,6 @@ def process_user_query(user_query, top_k, start_date, end_date, comments_only):
     except Exception as e:
         st.error(f"An error occurred: {e}")
         return None
-
-
 
 # Streamlit app layout
 st.title('Welcome to the Eavesdropper')
