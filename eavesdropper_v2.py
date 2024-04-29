@@ -117,8 +117,15 @@ user_input = st.text_input("What would you like to know?", "")
 if st.button('Analyze'):
     if user_input:
         response_text = process_user_query_with_clustering(user_input, top_k, num_clusters)
-        st.write(response_text)
+        if response_text:
+            st.write(response_text)
+        else:
+            st.write("Please try a different query or adjust the settings.")
     else:
         st.write("Please enter a question to analyze.")
+
+# Additional handling for possible user interaction errors
+if st.session_state.get('error', False):
+    st.error("An error occurred. Please check the inputs and try again.")
 
 
