@@ -34,7 +34,6 @@ system_messages = {
 st.title('Welcome to the Eavesdropper')
 selected_system_message = st.selectbox("Choose your role:", list(system_messages.keys()))
 top_k = st.slider("Select the number of top responses you want:", min_value=1, max_value=20, value=5)
-comments_only = st.checkbox("Filter for comments only")
 user_input = st.text_input("What would you like to know?", "")
 
 @st.cache
