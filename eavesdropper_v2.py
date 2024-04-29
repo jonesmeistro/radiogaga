@@ -108,9 +108,6 @@ def process_user_query_with_clustering(user_query, top_k, num_clusters):
     selected_texts = [texts[idx] for idx in cluster_indices]
     return generate_response_with_gpt3(selected_texts)
 
-st.title('YouTube Data Insight Generator')
-top_k = st.slider("Select the number of top responses (TOPK):", min_value=1, max_value=20, value=10, help="The higher the number, the more results are used in reference.")
-
 # UI Components
 st.title('YouTube Data Insight Generator')
 top_k = st.slider("Select the number of top responses (TOPK):", min_value=1, max_value=20, value=10, help="The higher the number, the more results are used in reference.")
