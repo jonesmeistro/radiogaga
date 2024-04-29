@@ -88,25 +88,40 @@ def generate_response_with_gpt3(responses):
         return None
 
 def process_user_query_with_clustering(user_query, top_k, num_clusters):
-    embedding_vector = get_query_embedding(user_query)
-    if not embedding_vector:
+    try:
+        embedding_vector = get_query_embedding(user_query)
+        # Ensure the embedding vector is not None and has the correct shape
+        if embedding_vector is None or embedding_vector.size == 0:
+            st.error("Failed to generate embedding vector for the query.")
+            return None
+
+        query_results = index.query(vector=embedding_vector, top_k=top_k, include_metadata=True)
+        if not query_results['matches']:
+            st.error("No matches found. Adjust your query or top_k value.")
+            return None
+        
+        texts = [match['metadata']['text_chunk'] for match in query_results['matches'] if 'text_chunk' in match['metadata']]
+        embeddings = [match['metadata'].get('embedding') for match in query_results['matches']]
+        
+        # Check if embeddings are valid
+        if not embeddings or all(embed is None for embed in embeddings):
+            st.error("Insufficient data for clustering. Reduce the number of clusters or increase top_k.")
+            return None
+
+        # Convert list of embeddings to numpy array for clustering
+        embeddings_array = np.array([embed for embed in embeddings if embed is not None])
+        if len(embeddings_array) < num_clusters:
+            st.error(f"Insufficient embeddings for clustering. Required: {num_clusters}, Available: {len(embeddings_array)}")
+            return None
+
+        # Clustering
+        representative_texts = perform_clustering(embeddings_array, num_clusters)
+        selected_texts = [texts[idx] for idx, _ in representative_texts]
+        return generate_response_with_gpt3(selected_texts)
+
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
         return None
-
-    query_results = index.query(vector=embedding_vector, top_k=top_k, include_metadata=True)
-    if not query_results['matches']:
-        st.error("No matches found. Adjust your query or top_k value.")
-        return None
-
-    texts = [match['metadata']['text_chunk'] for match in query_results['matches'] if 'text_chunk' in match['metadata']]
-    embeddings = [np.array(match['metadata'].get('embedding')).reshape(1, -1) for match in query_results['matches'] if match['metadata'].get('embedding')]
-
-    if len(embeddings) < num_clusters:
-        st.error("Insufficient data for clustering. Reduce the number of clusters or increase top_k.")
-        return None
-
-    cluster_indices = perform_clustering(embeddings, num_clusters)
-    selected_texts = [texts[idx] for idx in cluster_indices]
-    return generate_response_with_gpt3(selected_texts)
 
 # UI Components
 st.title('YouTube Data Insight Generator')
