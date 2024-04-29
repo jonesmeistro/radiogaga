@@ -79,7 +79,7 @@ def get_query_embedding(user_query):
         st.error(f"Failed to fetch embedding: {response.status_code} - {response.text}")
         return None
 
-def perform_clustering(embeddings, num_clusters=num_clusters):
+def perform_clustering(embeddings, num_clusters):
     kmeans = KMeans(n_clusters=num_clusters, random_state=0).fit(np.array(embeddings))
     cluster_labels = kmeans.labels_
     centroids = kmeans.cluster_centers_
