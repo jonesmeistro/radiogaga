@@ -126,30 +126,17 @@ def generate_response_with_gpt3(responses):
 
 def process_user_query_with_clustering(user_query, top_k, num_clusters):
     try:
-        embedding_vector = get_query_embedding(user_query)
-        # Ensure the embedding vector is not None and has the correct shape
-        if embedding_vector is None or embedding_vector.size == 0:
-            st.error("Failed to generate embedding vector for the query.")
+        embeddings, texts = get_embeddings_and_texts(user_query, top_k)
+        if not embeddings:
+            print("No embeddings retrieved. Check data retrieval process.")
             return None
 
-        query_results = index.query(vector=embedding_vector, top_k=top_k, include_metadata=True)
-        if not query_results['matches']:
-            st.error("No matches found. Adjust your query or top_k value.")
-            return None
-        
-        texts = [match['metadata']['text_chunk'] for match in query_results['matches'] if 'text_chunk' in match['metadata']]
-        embeddings = [match['metadata'].get('embedding') for match in query_results['matches']]
-        
-        # Check if embeddings are valid
-        if not embeddings or all(embed is None for embed in embeddings):
-            st.error("Insufficient data for clustering. Reduce the number of clusters or increase top_k.")
-            return None
-
-        # Convert list of embeddings to numpy array for clustering
-        embeddings_array = np.array([embed for embed in embeddings if embed is not None])
-        if len(embeddings_array) < num_clusters:
-            st.error(f"Insufficient embeddings for clustering. Required: {num_clusters}, Available: {len(embeddings_array)}")
-            return None
+        representative_indices = perform_clustering(embeddings, num_clusters)
+        representative_texts = [texts[idx] for idx, _ in representative_indices]
+        return generate_response_with_gpt3(representative_texts)
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
+        return None
 
         # Clustering
         representative_texts = perform_clustering(embeddings_array, num_clusters)
