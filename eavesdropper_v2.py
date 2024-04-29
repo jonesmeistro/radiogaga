@@ -6,9 +6,9 @@ import json
 import urllib.request  # Ensure this import is added
 
 # Environment variables
-embed_api_key = os.getenv("EMBED_API_KEY")
-generate_response_api_key = os.getenv("GENERATE_RESPONSE_API_KEY")
-pinecone_api_key = os.getenv("PINECONE_API_KEY")
+embed_api_key = st.secrets["EMBED_API_KEY"]
+generate_response_api_key = st.secrets["GENERATE_RESPONSE_API_KEY"]
+pinecone_api_key = st.secrets["PINECONE_API_KEY"]
 
 # Initialize Pinecone
 try:
