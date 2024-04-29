@@ -3,6 +3,7 @@ import requests
 import streamlit as st
 from pinecone import Pinecone
 import json
+import urllib.request  # Ensure this import is added
 
 # Environment variables
 embed_api_key = os.getenv("EMBED_API_KEY")
