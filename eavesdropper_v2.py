@@ -49,6 +49,21 @@ def get_query_embedding(user_query):
         st.error(f"API request failed with status code {response.status_code}: {response.text}")
         return None
 
+def perform_clustering(embeddings, num_clusters=5):
+    kmeans = KMeans(n_clusters=num_clusters, random_state=0).fit(np.array(embeddings))
+    cluster_labels = kmeans.labels_
+    centroids = kmeans.cluster_centers_
+
+    representative_texts = []
+    for i in range(num_clusters):
+        indices_in_cluster = np.where(cluster_labels == i)[0]
+        cluster_embeddings = np.array([embeddings[idx] for idx in indices_in_cluster])
+        distances = np.linalg.norm(cluster_embeddings - centroids[i], axis=1)
+        closest_point_index = indices_in_cluster[np.argmin(distances)]
+        representative_texts.append((closest_point_index, distances.min()))
+
+    return representative_texts
+
 # Function to generate response with GPT-3
 def generate_response_with_gpt3(responses):
     url = "https://ai-api-dev.dentsu.com/openai/deployments/GPT4-8K/chat/completions?api-version=2024-02-01"
