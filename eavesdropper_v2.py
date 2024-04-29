@@ -66,7 +66,7 @@ def generate_response_with_gpt3(responses):
     response = requests.post(url, headers=headers, json=data)
     return response.json()['choices'][0]['message']['content'] if 'choices' in response.json() else "Failed to generate response."
 
-def process_user_query(user_query, top_k, comments_only):
+def process_user_query(user_query, top_k):
     # Fetch embeddings and query Pinecone
     url = "https://ai-api-dev.dentsu.com/openai/deployments/TextEmbeddingAda2/embeddings?api-version=2024-02-01"
     headers = {
@@ -112,7 +112,7 @@ def process_user_query(user_query, top_k, comments_only):
 # Interaction button
 if st.button('Ask'):
     if user_input:
-        response_text = process_user_query(user_input, top_k, comments_only)
+        response_text = process_user_query(user_input, top_k)
         st.write(response_text)
     else:
         st.write("Please enter a question.")
