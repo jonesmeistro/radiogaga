@@ -32,14 +32,22 @@ def get_query_embedding(user_query):
         'api-version': 'v8',
         'Ocp-Apim-Subscription-Key': embed_api_key,
     }
-    response = requests.post(url, json={"query": user_query}, headers=headers)
-    return response.json()['embedding'] if response.ok else None
-
-def perform_clustering(embeddings, num_clusters):
-    kmeans = KMeans(n_clusters=num_clusters).fit(np.array(embeddings))
-    indices = np.argmin(kmeans.transform(np.array(embeddings)), axis=1)
-    return [(index, 0) for index in indices]
-
+    data = {
+        "input": user_query,
+        "user": "streamlit_user",
+        "input_type": "query"
+    }
+    response = requests.post(url, headers=headers, json=data)
+    if response.ok:
+        response_data = response.json()
+        if 'data' in response_data and 'embedding' in response_data['data'][0]:
+            return response_data['data'][0]['embedding']
+        else:
+            st.error("Embedding not found in response data.")
+            return None
+    else:
+        st.error(f"API request failed with status code {response.status_code}: {response.text}")
+        return None
 
 # Function to generate response with GPT-3
 def generate_response_with_gpt3(responses):
