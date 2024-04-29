@@ -6,4 +6,3 @@ youtube_transcript_api
 pandas
 scikit-learn
 numpy
-urllib
