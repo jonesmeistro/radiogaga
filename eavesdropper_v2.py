@@ -1,18 +1,19 @@
 import os 
 import requests
 import streamlit as st
-from pinecone import Pinecone, ServerlessSpec
+from pinecone import Pinecone
 import numpy as np
 from sklearn.cluster import KMeans
 import json
 
+# Initialize Pinecone
 embed_api_key = os.getenv("EMBED_API_KEY")
 generate_response_api_key = os.getenv("GENERATE_RESPONSE_API_KEY")
 pinecone_api_key = os.getenv("PINECONE_API_KEY")
+pc = Pinecone(api_key=pinecone_api_key)
+index_name = "index-llm-yt"
 
 try:
-    pc = Pinecone(api_key=pinecone_api_key)
-    index_name = "index-llm-yt"
     if index_name not in pc.list_indexes().names():
         st.error(f"Index {index_name} does not exist.")
     else:
@@ -20,7 +21,6 @@ try:
 except Exception as e:
     st.error(f"Failed to initialize Pinecone index: {e}")
 
-# Supporting Functions
 def get_query_embedding(user_query):
     url = "https://ai-api-dev.dentsu.com/openai/deployments/TextEmbeddingAda2/embeddings?api-version=2024-02-01"
     headers = {
@@ -37,34 +37,29 @@ def get_query_embedding(user_query):
         "user": "streamlit_user",
         "input_type": "query"
     }
-    response = requests.post(url, headers=headers, json=data)
+    response = requests.post(url, json=data, headers=headers)
     if response.ok:
-        response_data = response.json()
-        if 'data' in response_data and 'embedding' in response_data['data'][0]:
-            return response_data['data'][0]['embedding']
+        embedding_data = response.json()
+        if 'data' in embedding_data and len(embedding_data['data']) > 0:
+            return np.array(embedding_data['data'][0]['embedding']).reshape(1, -1)
         else:
-            st.error("Embedding not found in response data.")
+            st.error("No embedding data found in the response.")
             return None
     else:
-        st.error(f"API request failed with status code {response.status_code}: {response.text}")
+        st.error(f"Failed to fetch embedding: {response.status_code} - {response.text}")
         return None
 
-def perform_clustering(embeddings, num_clusters=5):
-    kmeans = KMeans(n_clusters=num_clusters, random_state=0).fit(np.array(embeddings))
-    cluster_labels = kmeans.labels_
-    centroids = kmeans.cluster_centers_
+def perform_clustering(embeddings, num_clusters):
+    if embeddings is None or len(embeddings) == 0 or len(embeddings[0]) == 0:
+        st.error("No valid embeddings provided for clustering.")
+        return []
+    if len(embeddings) < num_clusters:
+        st.error("Not enough data points for the number of requested clusters.")
+        return []
+    kmeans = KMeans(n_clusters=num_clusters, random_state=0).fit(embeddings)
+    cluster_indices = [np.argmin(np.linalg.norm(embeddings - kmeans.cluster_centers_[i], axis=1)) for i in range(num_clusters)]
+    return cluster_indices
 
-    representative_texts = []
-    for i in range(num_clusters):
-        indices_in_cluster = np.where(cluster_labels == i)[0]
-        cluster_embeddings = np.array([embeddings[idx] for idx in indices_in_cluster])
-        distances = np.linalg.norm(cluster_embeddings - centroids[i], axis=1)
-        closest_point_index = indices_in_cluster[np.argmin(distances)]
-        representative_texts.append((closest_point_index, distances.min()))
-
-    return representative_texts
-
-# Function to generate response with GPT-3
 def generate_response_with_gpt3(responses):
     url = "https://ai-api-dev.dentsu.com/openai/deployments/GPT4-8K/chat/completions?api-version=2024-02-01"
     headers = {
@@ -74,7 +69,7 @@ def generate_response_with_gpt3(responses):
         'Content-Type': 'application/json',
         'Cache-Control': 'no-cache',
         'api-version': 'v8',
-        'Ocp-Apim-Subscription-Key': os.getenv("generate_response_api_key"),
+        'Ocp-Apim-Subscription-Key': generate_response_api_key,
     }
     messages = [
         {"role": "system", "content": "This conversation is aimed at generating insights from YouTube data."},
@@ -86,38 +81,35 @@ def generate_response_with_gpt3(responses):
         "max_tokens": 1000
     }
     response = requests.post(url, headers=headers, json=data)
-    return response.json().get('choices')[0]['message']['content'] if response.status_code == 200 else "Failed to generate response."
-
-# Function to fetch and process data
-def process_user_query_with_clustering(user_query, top_k, num_clusters):
-    try:
-        embedding_vector = get_query_embedding(user_query)
-        if not embedding_vector:
-            st.error("Failed to generate embedding vector for the query.")
-            return None
-
-        query_results = index.query(vector=embedding_vector, top_k=top_k, include_metadata=True)
-        if not query_results['matches']:
-            st.error("No matches found. Adjust your query or top_k value.")
-            return None
-        
-        vector_ids = [match['id'] for match in query_results['matches']]
-        texts = [match['metadata']['text_chunk'] for match in query_results['matches'] if 'text_chunk' in match['metadata']]
-        embeddings = [match['metadata'].get('embedding') for match in query_results['matches']]
-
-        # Check if embeddings are valid
-        if not embeddings or len(embeddings) < num_clusters:
-            st.error("Insufficient data for clustering. Reduce the number of clusters or increase top_k.")
-            return None
-
-        # Clustering
-        representative_texts = perform_clustering(embeddings, num_clusters)
-        selected_texts = [texts[idx] for idx, _ in representative_texts]
-        return generate_response_with_gpt3(selected_texts)
-
-    except Exception as e:
-        st.error(f"An error occurred: {str(e)}")
+    if response.ok:
+        return response.json().get('choices')[0]['message']['content']
+    else:
+        st.error(f"Failed to generate response: {response.status_code} - {response.text}")
         return None
+
+def process_user_query_with_clustering(user_query, top_k, num_clusters):
+    embedding_vector = get_query_embedding(user_query)
+    if not embedding_vector:
+        return None
+
+    query_results = index.query(vector=embedding_vector, top_k=top_k, include_metadata=True)
+    if not query_results['matches']:
+        st.error("No matches found. Adjust your query or top_k value.")
+        return None
+
+    texts = [match['metadata']['text_chunk'] for match in query_results['matches'] if 'text_chunk' in match['metadata']]
+    embeddings = [np.array(match['metadata'].get('embedding')).reshape(1, -1) for match in query_results['matches'] if match['metadata'].get('embedding')]
+
+    if len(embeddings) < num_clusters:
+        st.error("Insufficient data for clustering. Reduce the number of clusters or increase top_k.")
+        return None
+
+    cluster_indices = perform_clustering(embeddings, num_clusters)
+    selected_texts = [texts[idx] for idx in cluster_indices]
+    return generate_response_with_gpt3(selected_texts)
+
+st.title('YouTube Data Insight Generator')
+top_k = st.slider("Select the number of top responses (TOPK):", min_value=1, max_value=20, value=10, help="The higher the number, the more results are used in reference.")
 
 # UI Components
 st.title('YouTube Data Insight Generator')
