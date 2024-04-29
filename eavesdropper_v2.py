@@ -20,6 +20,26 @@ try:
 except Exception as e:
     st.error(f"Failed to initialize Pinecone index: {e}")
 
+# Supporting Functions
+def get_query_embedding(user_query):
+    url = "https://ai-api-dev.dentsu.com/openai/deployments/TextEmbeddingAda2/embeddings?api-version=2024-02-01"
+    headers = {
+        'x-service-line': 'creative',
+        'x-brand': 'carat',
+        'x-project': 'CraigJonesProject',
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache',
+        'api-version': 'v8',
+        'Ocp-Apim-Subscription-Key': embed_api_key,
+    }
+    response = requests.post(url, json={"query": user_query}, headers=headers)
+    return response.json()['embedding'] if response.ok else None
+
+def perform_clustering(embeddings, num_clusters):
+    kmeans = KMeans(n_clusters=num_clusters).fit(np.array(embeddings))
+    indices = np.argmin(kmeans.transform(np.array(embeddings)), axis=1)
+    return [(index, 0) for index in indices]
+
 
 # Function to generate response with GPT-3
 def generate_response_with_gpt3(responses):
@@ -80,23 +100,4 @@ if st.button('Analyze'):
     else:
         st.write("Please enter a question to analyze.")
 
-# Supporting Functions
-def get_query_embedding(user_query):
-    url = "https://ai-api-dev.dentsu.com/openai/deployments/TextEmbeddingAda2/embeddings?api-version=2024-02-01"
-    headers = {
-        'x-service-line': 'creative',
-        'x-brand': 'carat',
-        'x-project': 'CraigJonesProject',
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache',
-        'api-version': 'v8',
-        'Ocp-Apim-Subscription-Key': embed_api_key,
-    }
-    response = requests.post(url, json={"query": user_query}, headers=headers)
-    return response.json()['embedding'] if response.ok else None
-
-def perform_clustering(embeddings, num_clusters):
-    kmeans = KMeans(n_clusters=num_clusters).fit(np.array(embeddings))
-    indices = np.argmin(kmeans.transform(np.array(embeddings)), axis=1)
-    return [(index, 0) for index in indices]
 
