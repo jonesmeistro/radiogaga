@@ -97,9 +97,18 @@ def process_user_query_with_clustering(user_query, top_k, num_clusters):
             return None
 
         query_results = index.query(vector=embedding_vector, top_k=top_k, include_metadata=True)
+        if not query_results['matches']:
+            st.error("No matches found. Adjust your query or top_k value.")
+            return None
+        
         vector_ids = [match['id'] for match in query_results['matches']]
         texts = [match['metadata']['text_chunk'] for match in query_results['matches'] if 'text_chunk' in match['metadata']]
-        embeddings = [match['values'] for match in query_results['matches']]
+        embeddings = [match['metadata'].get('embedding') for match in query_results['matches']]
+
+        # Check if embeddings are valid
+        if not embeddings or len(embeddings) < num_clusters:
+            st.error("Insufficient data for clustering. Reduce the number of clusters or increase top_k.")
+            return None
 
         # Clustering
         representative_texts = perform_clustering(embeddings, num_clusters)
@@ -107,7 +116,7 @@ def process_user_query_with_clustering(user_query, top_k, num_clusters):
         return generate_response_with_gpt3(selected_texts)
 
     except Exception as e:
-        st.error(f"An error occurred: {e}")
+        st.error(f"An error occurred: {str(e)}")
         return None
 
 # UI Components
