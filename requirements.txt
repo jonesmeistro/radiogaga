@@ -4,5 +4,5 @@ openai==0.28
 google-api-python-client
 youtube_transcript_api
 pandas
-sklearn
+scikit-learn
 numpy
