@@ -6,11 +6,20 @@ import numpy as np
 from sklearn.cluster import KMeans
 import json
 
-# Initialize Pinecone client
-api_key = os.getenv("PINECONE_API_KEY")
-pc = Pinecone(api_key=api_key)
-index_name = "index-llm-yt"
-index = pc.Index(name=index_name)
+embed_api_key = os.getenv("EMBED_API_KEY")
+generate_response_api_key = os.getenv("GENERATE_RESPONSE_API_KEY")
+pinecone_api_key = os.getenv("PINECONE_API_KEY")
+
+try:
+    pc = Pinecone(api_key=pinecone_api_key)
+    index_name = "index-llm-yt"
+    if index_name not in pc.list_indexes().names():
+        st.error(f"Index {index_name} does not exist.")
+    else:
+        index = pc.Index(name=index_name)
+except Exception as e:
+    st.error(f"Failed to initialize Pinecone index: {e}")
+
 
 # Function to generate response with GPT-3
 def generate_response_with_gpt3(responses):
@@ -22,7 +31,7 @@ def generate_response_with_gpt3(responses):
         'Content-Type': 'application/json',
         'Cache-Control': 'no-cache',
         'api-version': 'v8',
-        'Ocp-Apim-Subscription-Key': os.getenv("GENERATE_RESPONSE_API_KEY"),
+        'Ocp-Apim-Subscription-Key': os.getenv("generate_response_api_key"),
     }
     messages = [
         {"role": "system", "content": "This conversation is aimed at generating insights from YouTube data."},
@@ -73,8 +82,16 @@ if st.button('Analyze'):
 
 # Supporting Functions
 def get_query_embedding(user_query):
-    url = "https://api.example.com/get_embeddings"
-    headers = {'Authorization': 'Bearer your_api_key'}
+    url = "https://ai-api-dev.dentsu.com/openai/deployments/TextEmbeddingAda2/embeddings?api-version=2024-02-01"
+    headers = {
+        'x-service-line': 'creative',
+        'x-brand': 'carat',
+        'x-project': 'CraigJonesProject',
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache',
+        'api-version': 'v8',
+        'Ocp-Apim-Subscription-Key': embed_api_key,
+    }
     response = requests.post(url, json={"query": user_query}, headers=headers)
     return response.json()['embedding'] if response.ok else None
 
