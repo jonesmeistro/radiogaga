@@ -12,7 +12,7 @@ pinecone_api_key = st.secrets["PINECONE_API_KEY"]
 # Initialize Pinecone
 try:
     pc = Pinecone(api_key=pinecone_api_key)
-    index_name = "index-llm-yt"
+    index_name = "interior-design-index"
     index = pc.Index(name=index_name) if index_name in pc.list_indexes().names() else None
     if index is None:
         st.error(f"Index {index_name} does not exist.")
