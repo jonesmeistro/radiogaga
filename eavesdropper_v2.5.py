@@ -89,7 +89,7 @@ def generate_response_with_gpt3(responses, metadata):
     data = {
         "model": "gpt-4o",
         "messages": messages,
-        "max_tokens": 1000  # Adjust this based on your needs
+        "max_tokens": 4000  # Adjust this based on your needs
     }
 
     response = requests.post(url, headers=headers, json=data)
