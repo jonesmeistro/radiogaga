@@ -4,10 +4,13 @@ import json
 from datetime import datetime
 from pinecone import Pinecone
 
-# Retrieve API keys from Streamlit secrets
-embed_api_key = st.secrets["EMBED_API_KEY"]
-generate_response_api_key = st.secrets["GENERATE_RESPONSE_API_KEY"]
-pinecone_api_key = st.secrets["PINECONE_API_KEY"]
+
+embed_api_key = "717a41bf61fc4198b9e7c8cc668bddfb"
+generate_response_api_key = "c4f949461bee42fa968fcd58f1ec2f41"
+pinecone_api_key = "2af4a324-c766-4bd9-a523-b5457187fcc1"
+
+
+
 
 # Initialize Pinecone
 try:
@@ -86,7 +89,7 @@ def generate_response_with_gpt3(responses, metadata):
     data = {
         "model": "gpt-4o",
         "messages": messages,
-        "max_tokens": 2000  # Adjust this based on your needs
+        "max_tokens": 1000  # Adjust this based on your needs
     }
 
     response = requests.post(url, headers=headers, json=data)
